@@ -1,0 +1,12 @@
+*.sh
+*.dat
+*.pyc
+*.mzML
+*.out
+*.py~
+build/
+develop-eggs/
+eggs/
+.eggs/
+dist/
+*.egg-info/

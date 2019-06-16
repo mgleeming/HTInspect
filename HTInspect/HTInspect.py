@@ -1,10 +1,9 @@
 import os, sys
 
 from PyQt4 import QtCore, QtGui
-from gui.shared import *
-from res.utils import *
+#from res.utils import *
 from gui.HT_guiprocs import HT_search
-
+from res.utils import *
 from multiprocessing import Process, Queue
 
 def main():

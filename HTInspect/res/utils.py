@@ -9,8 +9,6 @@ from PyQt4 import QtCore, QtGui
 from multiprocessing import Process, Queue
 from subprocess import Popen, PIPE, STDOUT, call
 
-from viewHTResults.gui.shared import *
-
 class Runner(QtCore.QObject):
 	'''
 	Runs a job in a separate process and forwards messages from the job to the

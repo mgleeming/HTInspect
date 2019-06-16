@@ -140,24 +140,11 @@ def main(options):
 	#results = sort_HT_results(options, of1)
 	print 'Reading HiITME file'
 	htHeaders, results = read_hitime_files(
-											options.htIn, # input ht file
-											mzWidth = options.mzWidth,
-											rtWidth = options.rtWidth,
-											scoreCutoff = options.scoreCutoff
-											)
-
-	# get local maxima for HT search if needed
-	if not options.peakList:
-		print 'Filtering Isotopes'
-		results = get_HT_regions(
-								results,
-								options.rtWidth,
-								options.mzWidth,
-								rtExclusion = options.rtExclusion
-								)
-
-		# add found local max to headers
-		htHeaders['foundLocalMax'] = 1
+            options.htIn, # input ht file
+            mzWidth = options.mzWidth,
+            rtWidth = options.rtWidth,
+            scoreCutoff = options.scoreCutoff
+            )
 
 	print '%s HiTIME hits detected' %len(results)
 
@@ -171,11 +158,11 @@ def main(options):
 
 		print 'Building RT index'
 		results = resolve_rt_targets_to_spectra(
-												results,
-												rtIndexArray = ms1RTIndex,
-												msLevel = 1,
-												mstype = 'MS1'
-												)
+                                                        results,
+                                                        rtIndexArray = ms1RTIndex,
+                                                        msLevel = 1,
+                                                        mstype = 'MS1'
+                                                        )
 
 		print 'Plotting EIC'
 		# extract EIC and MS spectrumfor each hit
@@ -205,9 +192,9 @@ def main(options):
 #run('rat.max.threshold.1000.m300.scores.sorted.top.100.txt', '../rat.threshold.1000.mzML', 'speed-test.dat')
 
 class GuiOptions(object):
-	def __init__(self, args):
-		for k,v in args.iteritems():
-			setattr(self, k, v)
+    def __init__(self, args):
+        for k,v in args.iteritems():
+            setattr(self, k, v)
 
 def guiRun(q, args):
 	options = GuiOptions(args)

@@ -4,15 +4,14 @@ import sys, os
 sys.dont_write_bytecode = True
 
 import HT_search
-import viewHTResults.hitime.heatmap_subtraction as heatmap_subtraction
-import viewHTResults.hitime.HTS_resutls_file_parser as HTS_FP
+import HTInspect.hitime.HTS_resutls_file_parser as HTS_FP
+import HTInspect.hitime.HT_search_postprocessing as HTS_PP
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
 from pyqtgraph.Point import Point
 
 import numpy as np
-from viewHTResults.gui.shared import *
 from viewHTResults.res.utils import *
 
 '''
@@ -36,7 +35,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 		super(HT_search, self).__init__(parent)
 
 		self.setupUi(self)
-		self.setWindowTitle('HiTIME Search')
+		self.setWindowTitle('HTInspect')
 
 		if runner:
 			self.runner, self.runner_thread, self.q = runner
@@ -44,8 +43,10 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 		self.timer = QtCore.QTimer()
 		self.timer.timeout.connect(self.check_response)
 
+		self.RP_min_intensity.setText(str(0))
+                self.RP_mzDelta.setText(str(3.01005))
+		self.RP_EIC_width.setText(str(0.03))
 
-		''' class level variables'''
 		self.HT_search_list = []
 		self.hits = [] # stores hitime hits for RV tab
 		self.raw_data = None # raw hitime output data for RV tab
@@ -55,18 +56,6 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 		self.RP_HT_file = None
 		self.RP_mzML_file = None
 		self.HT_RP_outputFileName = None
-
-		self.ht_bs_treatment_data = None
-		self.ht_bs_control_data = None
-		self.ht_bs_output_data = None
-
-		self.ht_bs_rtTolerance = 0.3
-		self.ht_bs_mzTolerance = 0.2
-		self.ht_bs_scoreCutoff = 0
-
-		self.HT_BS_mz_tol.setText(str(self.ht_bs_mzTolerance))
-		self.HT_BS_rt_tol.setText(str(self.ht_bs_rtTolerance))
-		self.HT_BS_score_cutoff.setText(str(self.ht_bs_scoreCutoff))
 
 		''' set plot config options '''
 		# HM
@@ -109,14 +98,6 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 		self.HT_RV_hitlist.resizeColumnsToContents()
 		self.HT_RV_hitlist.horizontalHeader().setStretchLastSection(True)
 
-		self.HTS_input_file_table.resizeRowsToContents()
-		self.HTS_input_file_table.resizeColumnsToContents()
-		self.HTS_input_file_table.horizontalHeader().setStretchLastSection(True)
-
-		self.HTS_define_scan.resizeRowsToContents()
-		self.HTS_define_scan.resizeColumnsToContents()
-		self.HTS_define_scan.horizontalHeader().setStretchLastSection(True)
-
 		self.HT_RV_accepted_list.resizeRowsToContents()
 		self.HT_RV_accepted_list.resizeColumnsToContents()
 		self.HT_RV_accepted_list.horizontalHeader().setStretchLastSection(True)
@@ -147,234 +128,14 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 		self.RP_heat_map.setLabel(axis = 'top', text = '')
 		self.RP_heat_map.setLabel(axis = 'right', text = '')
 
-		# Histogram
-		self.RP_histogram.showGrid(x = True, y = True)
-		self.RP_histogram.showLabel('bottom', show = True)
-		self.RP_histogram.showLabel('top', show = True)
-		self.RP_histogram.showLabel('left', show = True)
-		self.RP_histogram.showLabel('right', show = True)
-		self.RP_histogram.setLabel(axis = 'bottom', text = 'Score')
-		self.RP_histogram.setLabel(axis = 'left', text = 'Counts')
-		self.RP_histogram.setLabel(axis = 'top', text = '')
-		self.RP_histogram.setLabel(axis = 'right', text = '')
-
-		'''
-		Plot config options for subtraction tab
-		'''
-		# HM
-		self.HT_BS_HM.showGrid(x = True, y = True)
-		self.HT_BS_HM.showLabel('bottom', show = True)
-		self.HT_BS_HM.showLabel('top', show = True)
-		self.HT_BS_HM.showLabel('left', show = True)
-		self.HT_BS_HM.showLabel('right', show = True)
-		self.HT_BS_HM.setLabel(axis = 'bottom', text = 'm/z')
-		self.HT_BS_HM.setLabel(axis = 'left', text = 'Retention Time (s)')
-		self.HT_BS_HM.setLabel(axis = 'top', text = '')
-		self.HT_BS_HM.setLabel(axis = 'right', text = '')
 
 		''' form GUI connections '''
-		self.HTS_gui_connections()
-		self.HT_BS_connections()
 		self.HT_RP_connections()
 		self.HT_RV_connections()
 
 		''' field activation defaults '''
 		self.EICtoggled()
 		self.fileOpenDialogPath = os.path.expanduser('~')
-
-	'''
-	CONNECTIONS AND FUNCTIONS FOR HITIME SEARCH TAB
-	'''
-	def HTS_gui_connections(self):
-		''' gui action connections for HiTIME search tab '''
-		self.HTS_load_input_files_button.clicked.connect(self.HTS_select_file)
-		self.HTS_run_HT_search.clicked.connect(self.HTS_run_HiTIME)
-		self.HTS_apply_params.clicked.connect(self.HTS_update_search_params)
-		self.HTS_input_file_table.itemSelectionChanged.connect(self.HTS_update_define_search)
-		self.HTS_set_output_file.clicked.connect(self.HTS_set_output_directory)
-		self.HTS_restore_defaults.clicked.connect(self.HTS_restore_default_params)
-		self.HTS_remove_row_button.clicked.connect(self.HTS_remove_input_file)
-		return
-
-	def HTS_remove_input_file(self):
-		highlighted_row = self.HTS_input_file_table.selectionModel().selectedRows()[0].row()
-		selected_file = str(self.HTS_input_file_table.item(highlighted_row, 0).text())
-		self.HT_search_list = [x for x in self.HT_search_list if x['inputFile'] != selected_file]
-		self.HTS_input_file_table.removeRow(int(highlighted_row))
-		try:
-			self.HTS_input_file_table.selectRow(0)
-		except:
-			pass
-		return
-
-	def HTS_select_file(self):
-		''' set argmuents of getOpenFileName to enable selection of multiple files'''
-		#self.lineEdit_2.setText(QtGui.QFileDialog.getOpenFileName())
-		HT_file = [QtGui.QFileDialog.getOpenFileName(self, 'Select HiTIME File', self.fileOpenDialogPath)]
-		self.fileOpenDialogPath = os.path.dirname(str(HT_file))
-
-		defaultmzDelta = 6.0201
-		defaultIR = 1
-		defaultIC = 0
-		defaultmzWidth = 150
-		defaultrtWidth = 17
-		defaultmzSigma = 1.5
-		defaultrtSigma = 1.5
-		defaultminSample = defaultrtWidth * defaultrtSigma/2.355
-
-		# get row coung
-		rc = self.HTS_input_file_table.rowCount()
-		self.HTS_input_file_table.insertRow(rc)
-
-		for i, f in enumerate(HT_file):
-			f = str(f)
-
-			file_entry = {
-				'inputFile' : f,
-				'threads' : 1,
-				'outputFile' : os.path.splitext(f)[0] + '_out.dat',
-				'mzDelta' : defaultmzDelta,
-				'intensityRatio' : defaultIR,
-				'mzWidth' : defaultmzWidth,
-				'rtWidth' : defaultrtWidth,
-				'rtSigma' : defaultrtSigma,
-				'mzSigma' : defaultmzSigma,
-				'minSample' : defaultminSample,
-				'ppm' : 4,
-				'logFile' : False,
-				'noScore' : False,
-				'removeLow' : False,
-				'outDir' : None,
-				'format' : 'mzml'
-			}
-
-			self.HT_search_list.append(file_entry)
-			self.HTS_input_file_table.setItem(i + rc, 0, QtGui.QTableWidgetItem(f))
-
-		self.HTS_input_file_table.selectRow(rc)
-		self.HTS_input_file_table.resizeRowsToContents()
-		self.HTS_input_file_table.resizeColumnsToContents()
-		self.HTS_input_file_table.horizontalHeader().setStretchLastSection(True)
-
-		self.HTS_update_define_search()
-		return
-
-	def HTS_clear_define_search(self):
-		self.HTS_define_scan.setItem(0,0, QtGui.QTableWidgetItem(str('')))
-		self.HTS_define_scan.setItem(0,1, QtGui.QTableWidgetItem(str('')))
-		self.HTS_define_scan.setItem(0,2, QtGui.QTableWidgetItem(str('')))
-		self.HTS_define_scan.setItem(0,3, QtGui.QTableWidgetItem(str('')))
-		self.HTS_define_scan.setItem(0,4, QtGui.QTableWidgetItem(str('')))
-		self.HTS_define_scan.setItem(0,5, QtGui.QTableWidgetItem(str('')))
-		self.HTS_define_scan.setItem(0,6, QtGui.QTableWidgetItem(str('')))
-		self.HTS_define_scan.setItem(0,7, QtGui.QTableWidgetItem(str('')))
-		return
-
-	def HTS_update_define_search(self):
-		try:
-			highlighted_row = self.HTS_input_file_table.selectionModel().selectedRows()[0].row()
-			selected_file = str(self.HTS_input_file_table.item(highlighted_row, 0).text())
-		except:
-			self.HTS_clear_define_search()
-			return
-
-		search_params = None
-		for entry in self.HT_search_list:
-			if entry['inputFile'] == selected_file:
-				search_params = entry
-				break
-
-		if not search_params: return
-		#print search_params['inputFile']
-		self.HTS_define_scan.setItem(0,0, QtGui.QTableWidgetItem(str(search_params['mzDelta'])))
-		self.HTS_define_scan.setItem(0,1, QtGui.QTableWidgetItem(str(search_params['intensityRatio'])))
-		self.HTS_define_scan.setItem(0,2, QtGui.QTableWidgetItem(str(search_params['mzWidth'])))
-		self.HTS_define_scan.setItem(0,3, QtGui.QTableWidgetItem(str(search_params['rtWidth'])))
-		self.HTS_define_scan.setItem(0,4, QtGui.QTableWidgetItem(str(search_params['mzSigma'])))
-		self.HTS_define_scan.setItem(0,5, QtGui.QTableWidgetItem(str(search_params['rtSigma'])))
-		self.HTS_define_scan.setItem(0,6, QtGui.QTableWidgetItem(str(search_params['threads'])))
-		self.HTS_define_scan.setItem(0,7, QtGui.QTableWidgetItem(str(search_params['outputFile'])))
-
-		self.HTS_define_scan.item(0,0).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,1).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,2).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,3).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,4).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,5).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,6).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,7).setTextAlignment(QtCore.Qt.AlignCenter)
-
-		self.HTS_define_scan.resizeRowsToContents()
-		self.HTS_define_scan.resizeColumnsToContents()
-		self.HTS_define_scan.horizontalHeader().setStretchLastSection(True)
-		return
-
-	def HTS_update_search_params(self):
-		highlighted_row = self.HTS_input_file_table.selectionModel().selectedRows()[0].row()
-		selected_file = str(self.HTS_input_file_table.item(highlighted_row, 0).text())
-		search_params = None
-		for entry in self.HT_search_list:
-			if entry['inputFile'] == selected_file:
-				search_params = entry
-				break
-		if not search_params: return
-		search_params['mzDelta'] = float(self.HTS_define_scan.item(0, 0).text())
-		search_params['intensityRatio'] = float(self.HTS_define_scan.item(0, 1).text())
-		search_params['mzWidth'] = float(self.HTS_define_scan.item(0, 2).text())
-		search_params['rtWidth'] = float(self.HTS_define_scan.item(0, 3).text())
-		search_params['mzSigma'] = float(self.HTS_define_scan.item(0, 4).text())
-		search_params['rtSigma'] = float(self.HTS_define_scan.item(0, 5).text())
-		search_params['threads'] = str(self.HTS_define_scan.item(0, 6).text())
-		search_params['outputFile'] = str(self.HTS_define_scan.item(0, 7).text())
-		return
-
-	def HTS_set_output_directory(self):
-		output_file = QtGui.QFileDialog.getSaveFileName(self, 'Select Output File', self.fileOpenDialogPath)
-		self.fileOpenDialogPath = os.path.dirname(str(output_file))
-		self.HTS_define_scan.setItem(0,6, QtGui.QTableWidgetItem(str(output_file)))
-		return
-
-	def HTS_restore_default_params(self):
-		defaultmzDelta = 6.0201
-		defaultIR = 1
-		defaultIC = 0
-		defaultmzWidth = 150
-		defaultrtWidth = 17
-		defaultmzSigma = 1.5
-		defaultrtSigma = 1.5
-		defaultminSample = defaultrtWidth * defaultrtSigma/2.355
-
-		highlighted_row = self.HTS_input_file_table.selectionModel().selectedRows()[0].row()
-		selected_file = str(self.HTS_input_file_table.item(highlighted_row, 0).text())
-		outFile = os.path.splitext(selected_file)[0] + '_out.dat'
-
-		self.HTS_define_scan.setItem(0,0, QtGui.QTableWidgetItem(str(defaultmzDelta)))
-		self.HTS_define_scan.setItem(0,1, QtGui.QTableWidgetItem(str(defaultIR)))
-		self.HTS_define_scan.setItem(0,2, QtGui.QTableWidgetItem(str(defaultmzWidth)))
-		self.HTS_define_scan.setItem(0,3, QtGui.QTableWidgetItem(str(defaultrtWidth)))
-		self.HTS_define_scan.setItem(0,4, QtGui.QTableWidgetItem(str(defaultmzSigma)))
-		self.HTS_define_scan.setItem(0,5, QtGui.QTableWidgetItem(str(defaultrtSigma)))
-		self.HTS_define_scan.setItem(0,6, QtGui.QTableWidgetItem(str(1)))
-		self.HTS_define_scan.setItem(0,7, QtGui.QTableWidgetItem(str(outFile)))
-
-		self.HTS_define_scan.item(0,0).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,1).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,2).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,3).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,4).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,5).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,6).setTextAlignment(QtCore.Qt.AlignCenter)
-		self.HTS_define_scan.item(0,7).setTextAlignment(QtCore.Qt.AlignCenter)
-		return
-
-	def textEditAppend(self, f):
-		self.HTS_status_text.appendPlainText(QtCore.QString(f))
-		return
-
-	def HTS_run_HiTIME(self):
-		run_job(self.runner, self.runner_thread, self.q, launch_HT_search, self.HT_search_list)
-		self.timer.start(1000)
-		return
 
 	def check_response(self):
 		'''
@@ -394,82 +155,6 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 				print update
 		return
 
-	'''
-	HEATMAP SUBTRACTION TAB
-	'''
-	def HT_BS_connections(self):
-		self.HT_BS_treatment_browse.clicked.connect(self.ht_bs_selectTreatment)
-		self.HT_BS_control_browse.clicked.connect(self.ht_bs_selectControl)
-		self.HT_BS_output_browse.clicked.connect(self.ht_bs_selectOutput)
-		self.HT_BS_run.clicked.connect(self.ht_bs_runSubtraction)
-		self.HT_BS_active_treatment.toggled.connect(self.ht_bs_updatePlot)
-		self.HT_BS_active_control.toggled.connect(self.ht_bs_updatePlot)
-		self.HT_BS_active_output.toggled.connect(self.ht_bs_updatePlot)
-		return
-
-	def ht_bs_selectTreatment(self):
-		self.HT_BS_treatment_file = QtGui.QFileDialog.getOpenFileName(self, 'Select Treatment HiTIME File', self.fileOpenDialogPath)
-		self.fileOpenDialogPath = os.path.dirname(str(self.HT_BS_treatment_file))
-		self.HT_BS_treatment_field.setText(str(self.HT_BS_treatment_file))
-		return
-
-	def ht_bs_selectControl(self):
-		self.HT_BS_control_file = QtGui.QFileDialog.getOpenFileName(self, 'Select Control HiTIME File', self.fileOpenDialogPath)
-		self.fileOpenDialogPath = os.path.dirname(str(self.HT_BS_control_file))
-		self.HT_BS_control_field.setText(str(self.HT_BS_control_file))
-		return
-
-	def ht_bs_selectOutput(self):
-		self.HT_BS_outputFileName = str(QtGui.QFileDialog.getSaveFileName(self, 'Select Output File', self.fileOpenDialogPath))
-		self.HT_BS_output_field.setText(self.HT_BS_outputFileName)
-		return
-
-	def ht_bs_updatePlot(self):
-
-		filename = None
-
-		# get checked radio button
-		buttons = [self.HT_BS_active_treatment, self.HT_BS_active_control, self.HT_BS_active_output]
-		filenames = [str(self.HT_BS_treatment_field.text()), str(self.HT_BS_control_field.text()), str(self.HT_BS_output_field.text())]
-		for i, button in enumerate(buttons):
-			if button.isChecked():
-				# plot relevant data if available
-				filename = filenames[i]
-				break
-
-		# exit if no file found
-		if not filename: return
-
-		self.HT_BS_HM.clear()
-
-		htHeaders, data = read_hitime_files(
-							filename,
-							returnNp = True,
-							retrieveTop = 10000,
-							)
-		self.HT_BS_HM.plot(x = data['mz'], y = data['rt'], pen = None, symbol = 'o')
-
-		return
-
-	def ht_bs_runSubtraction(self):
-		# pull parameters
-
-		rtTol = float(self.HT_BS_rt_tol.text())
-		mzTol = float(self.HT_BS_mz_tol.text())
-		scoreCutoff = float(self.HT_BS_score_cutoff.text())
-
-		args = {
-			'inTreatment' : self.HT_BS_treatment_file,
-			'inControl' : self.HT_BS_control_file,
-			'outFile' : self.HT_BS_outputFileName,
-			'rtTolerance' : rtTol,
-			'mzTolerance' : mzTol,
-			'scoreCutoff' : scoreCutoff
-		}
-
-		run_job(self.runner, self.runner_thread, self.q, heatmap_subtraction.gui_init, args)
-		self.timer.start(1000)
-		return
 
 	'''
 	DATA POSTPROCESSING FUNCTIONS
@@ -477,10 +162,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 	def HT_RP_connections(self):
 		self.RP_HT_input_button.clicked.connect(self.parse_HT_data)
 		self.RP_mascot_input_button.clicked.connect(self.select_mzml_file)
-		self.RP_mzWidth.textChanged.connect(self.refine_data_plots)
-		self.RP_rtWidth.textChanged.connect(self.refine_data_plots)
-		self.HT_RP_rt_exclusion.textChanged.connect(self.refine_data_plots)
-		self.RP_min_HT_score.textChanged.connect(self.refine_data_plots)
+		self.RP_min_intensity.textChanged.connect(self.plot_map)
 		self.RP_output_file_button.clicked.connect(self.set_output_file)
 		self.RP_run_button.clicked.connect(self.run_data_postprocessing)
 		self.HT_RP_plot_EICs.toggled.connect(self.EICtoggled)
@@ -508,57 +190,51 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 
 	def parse_HT_data(self):
 
-		'''
-		Select HT input:
-			Valid formats are:
-				1) rt, mz, amp, score
-				2) rt, mz, score
-
-		Parse HT data into list of hitime_hit instances
-			Attributes are
-				.rt
-				.mz
-				.score
-				.amp
-
-		Bind data and plot histogram and heatmap
-
-		Initially, all data is plotted which can then be refined by the user
-		'''
-
 		# get input file
 		self.RP_HT_file = QtGui.QFileDialog.getOpenFileName(self, 'Select HiTIME Results File', self.fileOpenDialogPath)
 		self.fileOpenDialogPath = os.path.dirname(str(self.RP_HT_file))
 		self.RP_HT_input_field.setText(str(self.RP_HT_file))
 
 		# run file parser
-		self.HT_RP_headesr, self.raw_HT_RP_data = read_hitime_files(self.RP_HT_file)
+		self.raw_HT_RP_data = HTS_FP.reader(self.RP_HT_file)
 
 		if not self.raw_HT_RP_data: return
 
 		# parse data and plot histogram
-		self.plot_score_histogram(self.raw_HT_RP_data)
+		self.plot_map()
 		return
 
-	def refine_data_plots(self):
 
-		minScore = str(self.RP_min_HT_score.text())
-		Drt = str(self.RP_rtWidth.text())
-		Dmz = str(self.RP_mzWidth.text())
-		rtExclusion = str(self.HT_RP_rt_exclusion.text())
+	def run_data_postprocessing(self):
+		'''
+		Pull postprocessing input parameters and run script
+		'''
 
-		minScore = float(minScore) if minScore != '' else 0
-		Drt = float(Drt) if Drt != '' else 0
-		Dmz = float(Dmz) if Dmz != '' else 0
-		rtExclusion = float(rtExclusion if rtExclusion != '' else 0.00)
+		minIntensity = str(self.RP_min_intensity.text())
+                mzDelta = str(self.RP_mzDelta.text())
+		eicWidth = str(self.RP_EIC_width.text())
 
-		self.refined_HT_RP_data = get_HT_regions(self.raw_HT_RP_data, Drt, Dmz, minScore = minScore, rtExclusion = rtExclusion)
+		minIntensity = float(minIntensity) if minIntensity != '' else 0
+		mzDelta = float(mzDelta) if mzDelta != '' else 0
+		eicWidth = float(eicWidth) if eicWidth != '' else 0.03
 
-		self.plot_score_histogram(self.refined_HT_RP_data)
+		args = {
+			'htIn' : str(self.RP_HT_file),
+			'mzmlFile' : str(self.RP_mzML_file),
+			'mzDelta' : mzDelta,
+			'eicWidth' : eicWidth,
+			'scoreCutoff' : minScore,
+			'outFile' : str(self.HT_RP_outputFileName),
+			'peakList' : True,
+			'plotEICs' : self.HT_RP_plot_EICs.isChecked(),
+		}
 
+		run_job(self.runner, self.runner_thread, self.q, HTS_PP.guiRun, args)
+		self.timer.start(1000)
 		return
 
-	def plot_score_histogram(self, HT_data):
+
+	def plot_map(self):
 
 		'''
 		Score histogram
@@ -568,88 +244,17 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 		# TODO >> this is a mess > fixme please
 
 		# clear plots
-		self.RP_histogram.clear()
 		self.RP_heat_map.clear()
 
-		# get a list of scores only
-		scores = [float(x.score) for x in HT_data]
-
-		max_score, min_score = max(scores), min(scores)
-
-		# bin data - create 50 bins b/w min and max vals
-		bin_counts, score_bins = np.histogram(scores, bins = np.linspace(min_score, max_score, 50))
-
-		# plot data
-		self.RP_histogram.plot(score_bins, bin_counts,stepMode = True, fillLevel = 0, brush = 'b')
-
+		minIntensity = float(str(self.RP_min_intensity.text()))
 		'''
 		Hit Heatmap
 		Note - increase plotting speed > only plot highest scoring 10,000 points
 		'''
-		rts = [float(x.rt) for x in HT_data[:10000]]
-		mzs = [float(x.mz) for x in HT_data[:10000]]
+		rts = [float(x.rt) for x in self.raw_HT_RP_data if x.amp > minIntensity]
+		mzs = [float(x.mz) for x in self.raw_HT_RP_data if x.amp > minIntensity]
 
 		self.RP_heat_map.plot(x = mzs, y = rts, pen = None, symbol = 'o')
-
-		# get histogram plot range limits
-		histogram_x_range = (
-					min_score,
-					max_score
-			)
-
-		histogram_y_range = (
-					0,
-					np.log10(max(bin_counts))
-			)
-
-		# set plot ranges
-		self.RP_histogram.setRange(xRange = histogram_x_range, yRange = histogram_y_range)
-		# Set y axis of histogram to log scale
-		self.RP_histogram.setLogMode(y = True)
-
-		return
-
-	def run_data_postprocessing(self):
-		'''
-		Pull postprocessing input parameters and run script
-		'''
-
-		minScore = str(self.RP_min_HT_score.text())
-		Drt = str(self.RP_rtWidth.text())
-		Dmz = str(self.RP_mzWidth.text())
-		mzDelta = str(self.RP_mzDelta.text())
-		eicWidth = str(self.RP_EIC_width.text())
-		rtExclusion = str(self.HT_RP_rt_exclusion.text())
-
-		minScore = float(minScore) if minScore != '' else 0
-		Drt = float(Drt) if Drt != '' else 0
-		Dmz = float(Dmz) if Dmz != '' else 0
-		mzDelta = float(mzDelta) if mzDelta != '' else 0
-		eicWidth = float(eicWidth) if eicWidth != '' else 0.03
-		rtExclusion = float(rtExclusion if rtExclusion != '' else 0.00)
-
-		print 'options pulled from GUI'
-		print 'Dmz: ' + str(Dmz)
-		print 'Drt: ' + str(Drt)
-
-		args = {
-			'htIn' : str(self.RP_HT_file),
-			'mzmlFile' : str(self.RP_mzML_file),
-			'mzDelta' : mzDelta,
-			'eicWidth' : eicWidth,
-			'scoreCutoff' : minScore,
-			'outFile' : str(self.HT_RP_outputFileName),
-			'mzWidth' : Dmz,
-			'rtWidth' : Drt,
-			'peakList' : False,
-			'rtExclusion' : rtExclusion,
-			'plotEICs' : self.HT_RP_plot_EICs.isChecked(),
-			'usePeptideIsotopeScaling' : self.HT_RP_use_peptide_isotope_scaling.isChecked()
-		}
-
-		import xenophile.libs.hitime.HT_search_postprocessing as HSP
-		run_job(self.runner, self.runner_thread, self.q, HSP.guiRun, args)
-		self.timer.start(1000)
 		return
 
 	'''
@@ -701,7 +306,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 	def parse_HT_results_file(self):
 		''' Called when a file is selected with load results button '''
 
-		
+
 		inFile = QtGui.QFileDialog.getOpenFileName(self,
 								'Specify Postprocessed HiTIME Reults File',
 								self.fileOpenDialogPath

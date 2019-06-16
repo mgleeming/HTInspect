@@ -1,5 +1,5 @@
 
-# HiTIME_results_viewer
+# HTInspect
 
 # Description
 

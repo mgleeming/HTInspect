@@ -82,6 +82,13 @@
                </property>
               </widget>
              </item>
+             <item row="0" column="3">
+              <widget class="QPushButton" name="submit">
+               <property name="text">
+                <string>Submit</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </item>
            <item>
@@ -187,13 +194,6 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_5">
            <item>
-            <widget class="QCheckBox" name="HT_RP_plot_EICs">
-             <property name="text">
-              <string>Plot EICs</string>
-             </property>
-            </widget>
-           </item>
-           <item>
             <layout class="QHBoxLayout" name="horizontalLayout_4">
              <item>
               <widget class="QLabel" name="label_15">
@@ -203,7 +203,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="RP_mascot_input_field"/>
+              <widget class="QLineEdit" name="RP_mzML_input_field"/>
              </item>
              <item>
               <widget class="QPushButton" name="RP_mascot_input_button">

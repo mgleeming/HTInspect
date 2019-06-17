@@ -2,6 +2,7 @@
 *.dat
 *.pyc
 *.mzML
+*.mzml
 *.out
 *.py~
 build/

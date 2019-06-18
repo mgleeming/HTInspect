@@ -45,7 +45,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         self.timer.timeout.connect(self.check_response)
 
         self.RP_min_intensity.setText(str(0))
-        self.RP_mzDelta.setText(str(3.010051111))
+        self.RP_mzDelta.setText(str(6.0201))
         self.RP_EIC_width.setText(str(0.03))
 
         self.HT_search_list = []
@@ -150,9 +150,9 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         ''' field activation defaults '''
         self.fileOpenDialogPath = os.path.expanduser('~')
 
-        self.RP_HT_input_field.setText(str('/home/mleeming/Code/HTInspect/HTInspect/data/BSA_FULL.mzML.max'))
-        self.RP_output_file_field.setText(str('/home/mleeming/Code/HTInspect/HTInspect/test'))
-        self.RP_mzML_input_field.setText(str('/home/mleeming/Code/HTInspect/HTInspect/data/BSA_FULL.mzML'))
+        self.RP_HT_input_field.setText(str(''))
+        self.RP_output_file_field.setText(str(''))
+        self.RP_mzML_input_field.setText(str(''))
 
         screenShape = QtGui.QDesktopWidget().screenGeometry()
         self.resize(screenShape.width()*0.8, screenShape.height()*0.8)

@@ -146,13 +146,6 @@
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_2">
              <item>
-              <widget class="QLabel" name="label_16">
-               <property name="text">
-                <string>Heat Map</string>
-               </property>
-              </widget>
-             </item>
-             <item>
               <widget class="PlotWidget" name="RP_heat_map"/>
              </item>
             </layout>
@@ -327,11 +320,14 @@
       <attribute name="title">
        <string>Results Viewer</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_6">
+      <layout class="QGridLayout" name="gridLayout_2">
        <item row="0" column="0">
-        <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
-         <item row="0" column="0">
-          <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0,0,0,0,0,0">
+        <widget class="QSplitter" name="splitter">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <widget class="QWidget" name="">
+          <layout class="QVBoxLayout" name="verticalLayout_5">
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_22">
              <item>
@@ -351,108 +347,123 @@
             </layout>
            </item>
            <item>
-            <widget class="QTableWidget" name="HT_RV_hitlist">
-             <property name="editTriggers">
-              <set>QAbstractItemView::NoEditTriggers</set>
-             </property>
-             <column>
-              <property name="text">
-               <string>Hit</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>RT</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>m/z</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Score</string>
-              </property>
-             </column>
-            </widget>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_23">
+            <layout class="QVBoxLayout" name="verticalLayout_4">
              <item>
-              <widget class="QPushButton" name="HT_RV_up">
+              <widget class="QLabel" name="label_29">
                <property name="text">
-                <string>Up</string>
+                <string>All Hits</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="HT_RV_down">
-               <property name="text">
-                <string>Down</string>
+              <widget class="QTableWidget" name="HT_RV_hitlist">
+               <property name="editTriggers">
+                <set>QAbstractItemView::NoEditTriggers</set>
                </property>
+               <column>
+                <property name="text">
+                 <string>Hit</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>RT</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>m/z</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>Score</string>
+                </property>
+               </column>
               </widget>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_23">
+               <item>
+                <widget class="QPushButton" name="HT_RV_up">
+                 <property name="text">
+                  <string>Up</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="HT_RV_down">
+                 <property name="text">
+                  <string>Down</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
             </layout>
            </item>
            <item>
-            <widget class="QLabel" name="label_28">
-             <property name="text">
-              <string>Accepted Hits</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QTableWidget" name="HT_RV_accepted_list">
-             <property name="editTriggers">
-              <set>QAbstractItemView::NoEditTriggers</set>
-             </property>
-             <property name="alternatingRowColors">
-              <bool>false</bool>
-             </property>
-             <column>
-              <property name="text">
-               <string>Hit</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>RT</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>m/z</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Score</string>
-              </property>
-             </column>
-            </widget>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_24">
+            <layout class="QVBoxLayout" name="verticalLayout_3">
              <item>
-              <widget class="QPushButton" name="HT_RV_remove">
+              <widget class="QLabel" name="label_28">
                <property name="text">
-                <string>Remove</string>
+                <string>Accepted Hits</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="HT_RV_write">
-               <property name="text">
-                <string>Write Results to File</string>
+              <widget class="QTableWidget" name="HT_RV_accepted_list">
+               <property name="editTriggers">
+                <set>QAbstractItemView::NoEditTriggers</set>
                </property>
+               <property name="alternatingRowColors">
+                <bool>false</bool>
+               </property>
+               <column>
+                <property name="text">
+                 <string>Hit</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>RT</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>m/z</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>Score</string>
+                </property>
+               </column>
               </widget>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_8">
+               <item>
+                <widget class="QPushButton" name="HT_RV_remove">
+                 <property name="text">
+                  <string>Remove</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="HT_RV_write">
+                 <property name="text">
+                  <string>Write Results to File</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
             </layout>
            </item>
           </layout>
-         </item>
-         <item row="0" column="1">
+         </widget>
+         <widget class="QWidget" name="">
           <layout class="QVBoxLayout" name="verticalLayout_8">
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_25">
@@ -522,8 +533,8 @@
             </layout>
            </item>
           </layout>
-         </item>
-        </layout>
+         </widget>
+        </widget>
        </item>
       </layout>
      </widget>

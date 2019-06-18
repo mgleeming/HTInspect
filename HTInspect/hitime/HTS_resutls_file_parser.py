@@ -22,7 +22,6 @@ def reader(inFile):
 
     rawData = []
     maxScore = 0
-    print (inFile)
     with open(inFile,'r') as data:
         for line in data:
             datum = parse_line(line)
@@ -39,7 +38,6 @@ def reader(inFile):
                 hit.rt = rt/60
                 hit.mz = mz
                 hit.amp = amp
-                print (rt, mz, amp)
                 rawData.append(hit)
             else:
                 pass
@@ -66,7 +64,6 @@ def processed_results_reader(if1):
     # read file
     with open(if1,'r') as data:
         for i, line in enumerate(data):
-            print (i)
             l = line.strip()
             if 'BEGIN_POSTPROCESSING_PARAMETERS' in l: read_headers = 1; continue
             if 'END_POSTPROCESSING_PARAMETERS' in l: read_headers = 0; continue

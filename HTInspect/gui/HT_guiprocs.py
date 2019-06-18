@@ -45,7 +45,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         self.timer.timeout.connect(self.check_response)
 
         self.RP_min_intensity.setText(str(0))
-        self.RP_mzDelta.setText(str(3.01005))
+        self.RP_mzDelta.setText(str(3.010051111))
         self.RP_EIC_width.setText(str(0.03))
 
         self.HT_search_list = []
@@ -103,6 +103,18 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         self.HT_RV_accepted_list.resizeColumnsToContents()
         self.HT_RV_accepted_list.horizontalHeader().setStretchLastSection(True)
 
+        hitHeaders = self.HT_RV_hitlist.horizontalHeader()
+        hitHeaders.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        hitHeaders.setResizeMode(1, QtGui.QHeaderView.Stretch)
+        hitHeaders.setResizeMode(2, QtGui.QHeaderView.Stretch)
+        hitHeaders.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
+
+        acceptedHeaders = self.HT_RV_accepted_list.horizontalHeader()
+        acceptedHeaders.setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
+        acceptedHeaders.setResizeMode(1, QtGui.QHeaderView.Stretch)
+        acceptedHeaders.setResizeMode(2, QtGui.QHeaderView.Stretch)
+        acceptedHeaders.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
+
         ''' set selection model for TableWidget items - want to select the entire row when a cell is clicked '''
         self.HT_RV_hitlist.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.HT_RV_accepted_list.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
@@ -130,7 +142,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         self.RP_heat_map.setLabel(axis = 'right', text = '')
 
 
-        self.RP_min_intensity.setText(str(50000))
+        self.RP_min_intensity.setText(str(2))
         ''' form GUI connections '''
         self.HT_RP_connections()
         self.HT_RV_connections()
@@ -138,9 +150,13 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         ''' field activation defaults '''
         self.fileOpenDialogPath = os.path.expanduser('~')
 
-        self.RP_HT_input_field.setText(str('/home/mleeming/Code/HTInspect/HTInspect/BSA_FULL_output_z2_maxima.csv'))
+        self.RP_HT_input_field.setText(str('/home/mleeming/Code/HTInspect/HTInspect/data/BSA_FULL.mzML.max'))
         self.RP_output_file_field.setText(str('/home/mleeming/Code/HTInspect/HTInspect/test'))
-        self.RP_mzML_input_field.setText(str('/home/mleeming/Code/HTInspect/HTInspect/BSA_FULL.mzML'))
+        self.RP_mzML_input_field.setText(str('/home/mleeming/Code/HTInspect/HTInspect/data/BSA_FULL.mzML'))
+
+        screenShape = QtGui.QDesktopWidget().screenGeometry()
+        self.resize(screenShape.width()*0.8, screenShape.height()*0.8)
+        self.splitter.setSizes([100,300])
 
     def check_response(self):
         '''
@@ -196,9 +212,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         return
 
     def parse_HT_data(self):
-        print('parse')
         self.RP_HT_file = str(self.RP_HT_input_field.text())
-
 
         self.fileOpenDialogPath = os.path.dirname(str(self.RP_HT_file))
 
@@ -406,9 +420,13 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
             hitNumber = int(str(self.HT_RV_hitlist.item(highlighted_row, 0).text()))
 
         else:
-            # item selected in accepted list
-            highlighted_row = self.HT_RV_accepted_list.selectionModel().selectedRows()[0].row()
-            hitNumber = int(str(self.HT_RV_accepted_list.item(highlighted_row, 0).text()))
+            try:
+                # item selected in accepted list
+                highlighted_row = self.HT_RV_accepted_list.selectionModel().selectedRows()[0].row()
+                hitNumber = int(str(self.HT_RV_accepted_list.item(highlighted_row, 0).text()))
+            except IndexError:
+                # land here when a row is removed from accepted list
+                hitNumber = 1
 
         # get matching hit
         hit = None
@@ -427,13 +445,11 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         EIC_RT = np.asarray(hit.EIC_RT)
         EIC_int_light = np.asarray(hit.EIC_int_light)
         EIC_int_heavy = np.asarray(hit.EIC_int_heavy)
-        print ('')
-        print (hit.mz)
-        print (MS_mz)
-        print (MS_int)
+
         # set ranges
         xRangeMS = self.getXRange(hit.mz, 10, rangeType = 'fixed')
         xRangeRT = self.getXRange(hit.rt, 10, rangeType = 'pc')
+
         try:
             yRangeMS = self.getYRange(MS_mz, MS_int, xRangeMS)
             yRangeRTL = self.getYRange(EIC_RT, EIC_int_light, xRangeRT)
@@ -441,6 +457,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
             yRangeRT = max([yRangeRTL, yRangeRTH])
         except:
             return
+
         yRangeMS = ( 0 - yRangeMS * 0.05, yRangeMS)
         yRangeRT = ( 0 - yRangeRT * 0.05, yRangeRT)
 
@@ -501,28 +518,33 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 
         # update table measurements to fit data
         self.HT_RV_accepted_list.resizeRowsToContents()
-        self.HT_RV_accepted_list.resizeColumnsToContents()
-        self.HT_RV_accepted_list.horizontalHeader().setStretchLastSection(True)
         return
 
     def remove_hit_from_accepted_list(self):
         # find highlighted row
-        highlighted_row = self.HT_RV_accepted_list.selectionModel().selectedRows()[0].row()
+        rows = self.HT_RV_accepted_list.selectionModel().selectedRows()
+
+        if len(rows) == 0: return
+
+        highlighted_row = rows[0].row()
         self.HT_RV_accepted_list.removeRow(highlighted_row)
+
         return
 
     def write_accepted_to_file(self):
         # get output file name and location
-        ofname = str(QtGui.QFileDialog.getSaveFileName(self, 'Set Output File', self.fileOpenDialogPath))
+        ofname, _ = QtGui.QFileDialog.getSaveFileName(self, 'Set Output File', self.fileOpenDialogPath)
+
+        if ofname == '': return
 
         # write data
-        of1 = open(ofname, 'wt')
+        of1 = open(str(ofname), 'wt')
 
         of1.write('#- Validated HiTIME hit list:\n')
 
         # write postprocessing headers to results file
         of1.write('#- Postprocessing parameters\n')
-        for k, v in self.headers.iteritems():
+        for k, v in self.headers.items():
             of1.write('# %s::: %s\n'%(k,v))
         of1.write('# validated::: 1\n') # indicates that these results have been user-checked
 
@@ -530,7 +552,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
 
         of1.write('## mz, rt, score\n')
         # get data from rows of accepted hit table
-        for r in xrange(self.HT_RV_accepted_list.rowCount()):
+        for r in range(self.HT_RV_accepted_list.rowCount()):
             hitNumber = int(str(self.HT_RV_accepted_list.item(r, 0).text()))
             rt = str(self.HT_RV_accepted_list.item(r, 1).text())
             mz = str(self.HT_RV_accepted_list.item(r, 2).text())

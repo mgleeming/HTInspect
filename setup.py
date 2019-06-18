@@ -10,4 +10,11 @@ setup(
     entry_points = {
         'gui_scripts': ['HTInspect = HTInspect.HTInspect:main']
     },
+    install_requires = [
+        'pymzml',
+        'PyQt5',
+        'PyQt5-sip',
+        'pyqtgraph',
+        'regex',
+    ],
 )

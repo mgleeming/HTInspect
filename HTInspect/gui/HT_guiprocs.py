@@ -3,7 +3,7 @@ import sys, os
 # prevent creation of compiled bytecode files
 sys.dont_write_bytecode = True
 
-import HTInspect.hitime.HTS_resutls_file_parser as HTS_FP
+import HTInspect.hitime.HTS_results_file_parser as HTS_FP
 import HTInspect.hitime.HT_search_postprocessing as HTS_PP
 
 from HTInspect.res.utils import *

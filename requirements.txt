@@ -1,0 +1,6 @@
+numpy==1.16.4
+pymzml==2.2.3
+PyQt5==5.12.2
+PyQt5-sip==4.19.17
+pyqtgraph==0.10.0
+regex==2019.6.8

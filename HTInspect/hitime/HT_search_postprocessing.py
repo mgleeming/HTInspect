@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 
 from HTInspect.res.utils import *
-import HTInspect.hitime.HTS_resutls_file_parser as HTS_FP
+import HTInspect.hitime.HTS_results_file_parser as HTS_FP
 
 parser = argparse.ArgumentParser(description = 'find hits in a HiTIME reuslts file')
 

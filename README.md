@@ -6,12 +6,14 @@ Tools for inspecting the results of HiTIME searches of liquid-chromatography mas
 
 # License
 
-HTInspect is released under the terms of the 3-Clause BSD License. The terms of the License are provided in the file called `LIC
-ENSE` in the top level of the repository.
+HTInspect is released under the terms of the 3-Clause BSD License. The terms of the License are provided in the file called 
+`LICENSE` in the top level of the repository.
 
 # Requirements
 
-HTInspect is written in Python 3.7 and requires the Qt5 toolkit. 
+HTInspect is written in Python 3.7 and requires the Qt5 toolkit.
+
+Instructions for installing Qt5 on various operating systems are provided by the [Qt wiki](https://wiki.qt.io/Main).
 
 # Installation
 

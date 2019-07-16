@@ -155,7 +155,7 @@ class HT_search (QtGui.QDialog, HT_search.Ui_Dialog):
         self.RP_mzML_input_field.setText(str(''))
 
         screenShape = QtGui.QDesktopWidget().screenGeometry()
-        self.resize(screenShape.width()*0.8, screenShape.height()*0.8)
+        self.resize(screenShape.width()*0.6, screenShape.height()*0.8)
         self.splitter.setSizes([100,300])
 
     def check_response(self):

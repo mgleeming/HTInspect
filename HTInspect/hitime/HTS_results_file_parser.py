@@ -1,4 +1,4 @@
-import os, sys, re
+import os, sys, re, pymzml
 
 class hitime_hit (object):
     def __init__(self):
@@ -18,7 +18,7 @@ def parse_line(line):
         return None
 
 
-def reader(inFile):
+def reader(inFile, minutes = True):
 
     rawData = []
     maxScore = 0
@@ -35,7 +35,9 @@ def reader(inFile):
                     continue
 
                 hit = hitime_hit()
-                hit.rt = rt/60
+                hit.rt = rt
+                if minutes:
+                    hit.rt = rt / 60
                 hit.mz = mz
                 hit.amp = amp
                 rawData.append(hit)

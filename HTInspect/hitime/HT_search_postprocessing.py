@@ -1,4 +1,4 @@
-import os, re, sys, operator
+import os, re, sys, operator, pymzml
 from datetime import datetime
 import numpy as np
 import argparse
@@ -174,13 +174,24 @@ def resolve_rt_targets_to_spectra(results, rtIndexArray = None, msLevel = None, 
 
     return results
 
+def getTimeUnitsFromMZML(infile):
+    msrun = pymzml.run.Reader(str(infile))
+    for spectrum in msrun:
+        if spectrum.scan_time[1] == 'second':
+            return False
+        if spectrum.scan_time[1] == 'minute':
+            return True
+    return None
+
 #@profile
 def main(options):
 
     # parse raw HT datafile
     #results = sort_HT_results(options, of1)
+    minutes = getTimeUnitsFromMZML(options.mzmlFile)
+
     print ('Reading HiITME file')
-    results = HTS_FP.reader(options.htIn)
+    results = HTS_FP.reader(options.htIn, minutes = minutes )
     results = [x for x in results if x.amp > options.minIntensity]
 
     print ('%s HiTIME hits detected' %len(results))
